@@ -1352,6 +1352,9 @@ view. Built-in and user-created/imported skills are listed separately. The
 Community tab supports importing `.skill` archives into My skills.
 General preferences remain in Settings.
 
+Failed skill projection manifest writes report the original error or interruption,
+even when temporary-file cleanup also fails.
+
 Administrators can see **Could not load** warnings in Capability Center > Skills
 when their own custom skill's `SKILL.md` contains invalid YAML. Warnings show the
 package-relative file and, when available, its line and column, with a quoting

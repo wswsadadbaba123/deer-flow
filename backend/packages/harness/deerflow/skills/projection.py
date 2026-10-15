@@ -11,7 +11,7 @@ import shutil
 import tempfile
 import threading
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import contextmanager, suppress
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -402,11 +402,19 @@ def _write_manifest(scope_root: Path, source_signature: str, view_signature: str
     if view_signature is not None:
         payload["view_signature"] = view_signature
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as stream:
+        stream = os.fdopen(fd, "w", encoding="utf-8")
+        fd = None  # The stream now owns the descriptor.
+        with stream:
             json.dump(payload, stream, sort_keys=True)
         temporary.replace(target)
-    except Exception:
-        temporary.unlink(missing_ok=True)
+    except BaseException:
+        # Close an untransferred descriptor before unlinking (required on Windows).
+        # Neither cleanup failure may hide the publication error or interruption.
+        if fd is not None:
+            with suppress(OSError):
+                os.close(fd)
+        with suppress(OSError):
+            temporary.unlink(missing_ok=True)
         raise
 
 
