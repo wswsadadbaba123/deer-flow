@@ -1,6 +1,6 @@
 ### Skills System (`packages/harness/deerflow/skills/`)
 
-- **Projection manifest publication**: `_write_manifest` transfers descriptor ownership only after `os.fdopen` succeeds. On write/replace failures or interruptions, close any untransferred descriptor before attempting temporary-file deletion; each cleanup step is best-effort for `OSError` and must preserve the original exception. Keep the JSON schema and replacement semantics unchanged. Coverage: `tests/test_skill_projection_manifest_cleanup.py`.
+- **Projection manifest publication**: `_write_manifest` transfers descriptor ownership only after `os.fdopen` succeeds. On write/replace failures or interruptions, close any untransferred descriptor before attempting temporary-file deletion; each cleanup step is best-effort for `OSError` and must preserve the original exception. Log cleanup failures at warning level with the temporary path and exception details. Keep the JSON schema and replacement semantics unchanged. Coverage: `tests/test_skill_projection_manifest_cleanup.py`.
 
 - **Frontmatter boundaries**: `frontmatter.py` owns standalone `---` delimiter lines for runtime parsing, installation validation, and review. Accept trailing spaces/tabs, LF/CRLF, a leading UTF-8 BOM, and a closing delimiter at EOF. Preserve body whitespace; prefix-only lines such as `---suffix` cannot close frontmatter. Regression coverage lives in `tests/test_skill_frontmatter_boundaries.py`.
 

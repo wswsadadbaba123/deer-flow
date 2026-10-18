@@ -11,7 +11,7 @@ import shutil
 import tempfile
 import threading
 from collections.abc import Iterator
-from contextlib import contextmanager, suppress
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -411,10 +411,14 @@ def _write_manifest(scope_root: Path, source_signature: str, view_signature: str
         # Close an untransferred descriptor before unlinking (required on Windows).
         # Neither cleanup failure may hide the publication error or interruption.
         if fd is not None:
-            with suppress(OSError):
+            try:
                 os.close(fd)
-        with suppress(OSError):
+            except OSError:
+                logger.warning("Failed to close projection manifest descriptor for %s", temporary, exc_info=True)
+        try:
             temporary.unlink(missing_ok=True)
+        except OSError:
+            logger.warning("Failed to remove temporary projection manifest %s", temporary, exc_info=True)
         raise
 
 

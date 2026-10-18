@@ -1395,6 +1395,7 @@ General preferences remain in Settings.
 
 Failed skill projection manifest writes report the original error or interruption,
 even when temporary-file cleanup also fails.
+Cleanup failures are logged with the temporary manifest path for troubleshooting.
 
 Administrators can see **Could not load** warnings in Capability Center > Skills
 when their own custom skill's `SKILL.md` contains invalid YAML. Warnings show the

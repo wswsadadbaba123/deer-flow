@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from pathlib import Path
 
@@ -15,7 +16,7 @@ from deerflow.skills import projection
 @pytest.mark.parametrize("stage", ["write", "replace"])
 @pytest.mark.parametrize("interrupted", [False, True], ids=["io-error", "interrupt"])
 @pytest.mark.parametrize("cleanup_fails", [False, True], ids=["cleanup-ok", "cleanup-error"])
-def test_failed_manifest_preserves_error_and_attempts_cleanup(tmp_path, monkeypatch, existing, stage, interrupted, cleanup_fails):
+def test_failed_manifest_preserves_error_and_attempts_cleanup(tmp_path, monkeypatch, existing, stage, interrupted, cleanup_fails, caplog):
     target = tmp_path / ".projection-manifest.json"
     if existing:
         target.write_bytes(b"previous manifest")
@@ -45,6 +46,12 @@ def test_failed_manifest_preserves_error_and_attempts_cleanup(tmp_path, monkeypa
     assert attempts[0].parent == tmp_path
     assert attempts[0].name.startswith(".projection-manifest-")
     assert attempts[0].exists() is cleanup_fails
+    records = [record for record in caplog.records if record.name == projection.__name__]
+    assert len(records) == int(cleanup_fails)
+    if cleanup_fails:
+        assert records[0].levelno == logging.WARNING
+        assert str(attempts[0]) in records[0].getMessage()
+        assert isinstance(records[0].exc_info[1], PermissionError)
     if existing:
         assert target.read_bytes() == b"previous manifest"
     else:
@@ -52,7 +59,7 @@ def test_failed_manifest_preserves_error_and_attempts_cleanup(tmp_path, monkeypa
 
 
 @pytest.mark.parametrize("close_fails", [False, True], ids=["close-ok", "close-error"])
-def test_fdopen_failure_closes_descriptor_before_cleanup(tmp_path, monkeypatch, close_fails):
+def test_fdopen_failure_closes_descriptor_before_cleanup(tmp_path, monkeypatch, close_fails, caplog):
     failure = OSError("fdopen failed")
     close = os.close
     unlink = Path.unlink
@@ -84,6 +91,12 @@ def test_fdopen_failure_closes_descriptor_before_cleanup(tmp_path, monkeypatch, 
         assert caught.value is failure
         assert len(cleanup_attempts) == 1
         assert list(tmp_path.iterdir()) == []
+        records = [record for record in caplog.records if record.name == projection.__name__]
+        assert len(records) == int(close_fails)
+        if close_fails:
+            assert records[0].levelno == logging.WARNING
+            assert "close" in records[0].getMessage()
+            assert records[0].exc_info[1].args == ("close failed",)
     finally:
         # Keep the pre-fix regression run from leaking its deliberately captured fd.
         for fd in descriptors:
